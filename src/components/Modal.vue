@@ -8,7 +8,9 @@
       :class="[modal.animar ? 'animar' : 'cerrar']"
     >
       <form action="" class="nuevo-gasto" @submit.prevent="agregarGasto">
-        <legend>Añadir Gasto</legend>
+        <legend>
+          {{ isEditing ? "Actualizar un gasto" : "Añadir gasto" }}
+        </legend>
         <Alerta v-if="error">{{ error }}</Alerta>
         <div class="campo">
           <label for="nombre">Nombre Gasto:</label>
@@ -48,20 +50,32 @@
             <option value="suscripciones">Suscripciones</option>
           </select>
         </div>
-        <input type="submit" value="Añadir Gasto" />
+        <input
+          type="submit"
+          :value="[isEditing ? 'Guardar Cambios' : 'Añadir Gasto']"
+        />
       </form>
+      <button
+        type="button"
+        class="btn-eliminar"
+        v-if="isEditing"
+        @click="$emit('eliminar-gasto')"
+      >
+        Eliminar Gasto
+      </button>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import Alerta from "./Alerta.vue";
 import cerrarModal from "../assets/img/cerrar.svg";
 const error = ref("");
 const emit = defineEmits([
   "ocultar-modal",
   "guardar-gasto",
+  "eliminar-gasto",
   "update:nombre",
   "update:cantidad",
   "update:categoria",
@@ -83,10 +97,18 @@ const props = defineProps({
     type: String,
     required: true,
   },
+  disponible: {
+    type: Number,
+    required: true,
+  },
+  id: {
+    type: [String, null],
+    required: true,
+  },
 });
-
+const old = props.cantidad;
 const agregarGasto = () => {
-  const { cantidad, categoria, nombre } = props;
+  const { cantidad, categoria, nombre, disponible, id } = props;
   if ([nombre, cantidad, categoria].includes("")) {
     error.value = "Todos los campos son obligatorios";
     return;
@@ -95,11 +117,26 @@ const agregarGasto = () => {
     error.value = "La cantidad no es valida";
     return;
   }
+  if (id) {
+    if (cantidad > old + disponible) {
+      error.value = "Haz excedido el presupuesto";
+      return;
+    }
+  } else {
+    if (cantidad > disponible) {
+      error.value = "Haz excedido el presupuesto";
+      return;
+    }
+  }
+
   emit("guardar-gasto");
   setTimeout(() => {
     error.value = "";
   }, 3000);
 };
+const isEditing = computed(() => {
+  return props.id;
+});
 </script>
 
 <style scoped>
@@ -174,6 +211,17 @@ const agregarGasto = () => {
   background-color: var(--azul);
   color: var(--blanco);
   font-weight: 700;
+  cursor: pointer;
+}
+.btn-eliminar {
+  border: none;
+  padding: 1rem;
+  width: 100%;
+  background-color: #ef4444;
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: var(--blanco);
+  margin-top: 10rem;
   cursor: pointer;
 }
 </style>
