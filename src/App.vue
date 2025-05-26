@@ -52,7 +52,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch, computed } from "vue";
+import { ref, reactive, watch, computed, onMounted } from "vue";
 import Presupuesto from "./components/Presupuesto.vue";
 import ControlPresupuesto from "./components/ControlPresupuesto.vue";
 import Modal from "./components/Modal.vue";
@@ -86,6 +86,7 @@ watch(
     );
     gastado.value = totalGastado;
     disponible.value = presupuesto.value - totalGastado;
+    localStorage.setItem("gastos", JSON.stringify(gastos.value));
   },
   {
     deep: true,
@@ -94,14 +95,28 @@ watch(
 watch(modal, () => {
   if (!modal.mostrar) reiniciarStateGasto();
 });
+watch(presupuesto, () => {
+  localStorage.setItem("presupuesto", presupuesto.value);
+});
+onMounted(() => {
+  const presupuestoStorage = localStorage.getItem("presupuesto");
+  if (presupuestoStorage) {
+    presupuesto.value = Number(presupuestoStorage);
+  }
+  const gastosStorage = localStorage.getItem("gastos");
+  if (gastosStorage) {
+    gastos.value = JSON.parse(gastosStorage);
+  }
+});
 
 const definirPresupuesto = (cantidad) => {
   presupuesto.value = cantidad;
   disponible.value = cantidad;
 };
 const resetApp = () => {
+  if (!confirm("¿Desea reiniciar la aplicación?")) return;
+  gastos.value = [];
   presupuesto.value = 0;
-  disponible.value = 0;
 };
 const mostrarModal = () => {
   modal.mostrar = true;
@@ -150,7 +165,6 @@ const eliminarGasto = () => {
   );
   ocultarModal();
 };
-
 const gastosFiltrados = computed(() => {
   if (!filtro.value) return gastos.value;
 
